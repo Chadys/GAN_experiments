@@ -21,9 +21,9 @@ def define_flags():
                             'The number of images in each train batch.')
     tf.flags.DEFINE_integer('max_number_of_steps', 20000,
                             'The maximum number of gradient steps.')
-    tf.flags.DEFINE_integer('noise_dims', 512,
+    tf.flags.DEFINE_integer('noise_dims', 256,
                             'Dimensions of the generator noise vector')
-    tf.flags.DEFINE_integer('image_dims', 256,
+    tf.flags.DEFINE_integer('image_dims', 128,
                             'The size images should be redimentioned to')
 
     tf.flags.DEFINE_string('dataset_dir', './pokemon_data/', 'Location of data.')
@@ -31,6 +31,8 @@ def define_flags():
                            'Directory where the results images are saved to.')
     tf.flags.DEFINE_string('model_dir', './pokemon-model/',
                            'Directory where the checkpoints and model are saved.')
+    tf.flags.DEFINE_string('gen_dir', './gen_img/',
+                           'Directory where the images from summaries are saved.')
 
     tf.flags.DEFINE_integer('kmp_blocktime', 0,
                             'Sets the time, in milliseconds, that a thread should wait, after completing the '
@@ -66,6 +68,27 @@ def _generator(noise, mode):
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
     return networks.generator(noise, is_training=is_training)
 
+def save_images_from_events_summaries(output_dir):
+    if not tf.gfile.Exists(output_dir):
+        tf.gfile.MakeDirs(output_dir)
+    with tf.Session():
+        for data_filename in os.listdir(FLAGS.model_dir):
+            if 'events.out' not in data_filename:
+                continue
+
+            image_str = tf.placeholder(tf.string)
+            im_tf = tf.image.decode_image(image_str)
+            try:
+                for e in tf.train.summary_iterator(os.path.join(FLAGS.model_dir, data_filename)):
+                    for v in e.summary.value:
+                        if not v.tag == 'generated_data/image':
+                            continue
+                        im = im_tf.eval({image_str: v.image.encoded_image_string})
+                        output_fn = os.path.realpath('{}/image_{:04d}.png'.format(output_dir, e.step))
+                        print("Saving '{}'".format(output_fn))
+                        scipy.misc.imsave(output_fn, im)
+            except tf.errors.DataLossError:
+                pass
 
 def main(_):
     tf.logging.set_verbosity(tf.logging.INFO)
@@ -85,21 +108,26 @@ def main(_):
     #     print(session.run(tensor))
     # return
     # Initialize GANEstimator with options and hyperparameters.
+
     gan_estimator = tfgan.estimator.GANEstimator(
         generator_fn=_generator,
         discriminator_fn=networks.discriminator,
-        generator_loss_fn=tfgan.losses.wasserstein_generator_loss,
-        discriminator_loss_fn=tfgan.losses.wasserstein_discriminator_loss,
+        generator_loss_fn=tfgan.losses.modified_generator_loss,
+        discriminator_loss_fn=tfgan.losses.modified_discriminator_loss,
         generator_optimizer=tf.train.AdamOptimizer(0.001, 0.5),
-        discriminator_optimizer=tf.train.AdamOptimizer(0.0001, 0.5),
+        discriminator_optimizer=tf.train.GradientDescentOptimizer(0.5),
+        # discriminator_optimizer=tf.train.AdamOptimizer(0.0001, 0.5),
         add_summaries=tfgan.estimator.SummaryType.IMAGES,
-        model_dir=FLAGS.model_dir)
+        model_dir=FLAGS.model_dir,
+        config=tf.estimator.RunConfig(keep_checkpoint_max=3),  #TODO add mirrored strategy
+        get_hooks_fn=tfgan.get_sequential_train_hooks(
+            train_steps=tfgan.GANTrainSteps(1, 1)))
 
     gan_estimator.train(lambda: data_provider.provide_data(FLAGS.dataset_dir, shape),
                         max_steps=FLAGS.max_number_of_steps)
 
     # Run inference.
-    prediction_iterable = gan_estimator.predict(lambda : tf.random_normal([36, FLAGS.noise_dims]))
+    prediction_iterable = gan_estimator.predict(lambda: tf.random_normal([36, FLAGS.noise_dims]))
     predictions = [next(prediction_iterable) for _ in range(36)]
 
     # Nicely tile.
@@ -110,8 +138,9 @@ def main(_):
     # Write to disk.
     if not tf.gfile.Exists(FLAGS.eval_dir):
         tf.gfile.MakeDirs(FLAGS.eval_dir)
-    scipy.misc.imsave(os.path.join(FLAGS.eval_dir, 'gan.png'),
-                      np.squeeze(tiled_image, axis=2))
+    scipy.misc.imsave(os.path.join(FLAGS.eval_dir, 'gan.png'), tiled_image)
+
+    save_images_from_events_summaries(output_dir=FLAGS.gen_dir)
 
 
 if __name__ == '__main__':

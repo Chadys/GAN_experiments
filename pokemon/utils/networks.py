@@ -1,9 +1,5 @@
 import tensorflow as tf
 
-ds = tf.contrib.distributions
-layers = tf.contrib.layers
-tfgan = tf.contrib.gan
-
 
 # TODO change to work with NCHW images
 
@@ -24,20 +20,20 @@ def _generator_helper(noise, weight_decay, is_training):
         A generated image in the range [-1, 1].
     """
     with tf.contrib.framework.arg_scope(
-            [layers.fully_connected, layers.conv2d_transpose],
-            activation_fn=tf.nn.relu, normalizer_fn=layers.batch_norm,
-            weights_regularizer=layers.l2_regularizer(weight_decay)):
+            [tf.contrib.layers.fully_connected, tf.contrib.layers.conv2d_transpose],
+            activation_fn=tf.nn.relu, normalizer_fn=tf.contrib.layers.batch_norm,
+            weights_regularizer=tf.contrib.layers.l2_regularizer(weight_decay)):
         with tf.contrib.framework.arg_scope(
-                [layers.batch_norm], is_training=is_training):
-            net = layers.fully_connected(noise, 4096)
-            net = layers.fully_connected(net, 16 * 16 * 128)
+                [tf.contrib.layers.batch_norm], is_training=is_training):
+            net = tf.contrib.layers.fully_connected(noise, 2048)
+            net = tf.contrib.layers.fully_connected(net, 16 * 16 * 128)
             net = tf.reshape(net, [-1, 16, 16, 128])
-            net = layers.conv2d_transpose(net, 64, [4, 4], stride=4)
-            net = layers.conv2d_transpose(net, 32, [4, 4], stride=2)
-            net = layers.conv2d_transpose(net, 16, [4, 4], stride=2)
+            net = tf.contrib.layers.conv2d_transpose(net, 64, [4, 4], stride=2)
+            net = tf.contrib.layers.conv2d_transpose(net, 32, [4, 4], stride=2)
+            net = tf.contrib.layers.conv2d_transpose(net, 16, [4, 4], stride=2)
             # Make sure that generator output is in the same range as `inputs`
             # ie [-1, 1].
-            net = layers.conv2d(net, 3, [4, 4], normalizer_fn=None, activation_fn=tf.tanh)
+            net = tf.contrib.layers.conv2d(net, 3, [4, 4], normalizer_fn=None, activation_fn=tf.tanh)
 
             return net
 
@@ -73,18 +69,20 @@ def _discriminator_helper(img, weight_decay):
         weight_decay: The L2 weight decay.
 
     Returns:
-        Final fully connected discriminator layer. [batch_size, 1024].
+        Final fully connected discriminator layer. [batch_size, 2048].
     """
+
     with tf.contrib.framework.arg_scope(
-            [layers.conv2d, layers.fully_connected],
-            activation_fn=_leaky_relu, normalizer_fn=None,
-            weights_regularizer=layers.l2_regularizer(weight_decay),
-            biases_regularizer=layers.l2_regularizer(weight_decay)):
-        net = layers.conv2d(img, 32, [4, 4], stride=2)
-        net = layers.conv2d(net, 64, [4, 4], stride=2)
-        net = layers.conv2d(net, 128, [4, 4], stride=4)
-        net = layers.flatten(net)
-        net = layers.fully_connected(net, 4096, normalizer_fn=layers.layer_norm)
+            [tf.contrib.layers.conv2d, tf.contrib.layers.fully_connected],
+            activation_fn=_leaky_relu, normalizer_fn=tf.contrib.layers.batch_norm,
+            weights_regularizer=tf.contrib.layers.l2_regularizer(weight_decay),
+            biases_regularizer=tf.contrib.layers.l2_regularizer(weight_decay)):
+        net = tf.contrib.layers.conv2d(img, 32, [4, 4], stride=2)
+        net = tf.contrib.layers.conv2d(net, 64, [4, 4], stride=2)
+        net = tf.contrib.layers.conv2d(net, 128, [4, 4], stride=2)
+        net = tf.contrib.layers.flatten(net)
+        net = tf.contrib.layers.fully_connected(net, 2048, normalizer_fn=tf.contrib.layers.layer_norm)
+        net = tf.layers.batch_normalization(net)
 
         return net
 
@@ -99,5 +97,6 @@ def discriminator(img, weight_decay=2.5e-5):
     Returns:
         Logits for the probability that the image is real.
     """
+    # img = img + tf.random_normal(shape=tf.shape(img), mean=0.0, stddev=0.1*weight_decay, dtype=tf.float32)
     net = _discriminator_helper(img, weight_decay)
-    return layers.linear(net, 1)
+    return tf.contrib.layers.linear(net, 1)

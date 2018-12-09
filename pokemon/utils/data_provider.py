@@ -10,13 +10,10 @@ def parse_fn(record, shape):
         'image_formatted': tf.FixedLenFeature([], tf.string)
     }
     parsed_record = tf.parse_single_example(record, features)
-    # image = tf.decode_raw(parsed_record['image_raw'], tf.uint8)
     image = tf.image.decode_image(parsed_record['image_formatted'])
 
     image = tf.reshape(image, shape)  # NHWC format
     image = tf.image.resize_images(image, [FLAGS.image_dims]*2)
-    # image = np.expand_dims(record.astype(np.float32), axis=3)
-    # image = tf.image.per_image_standardization(image)
     # image = tf.transpose(image, [2, 0, 1]) # NCHW format
     image = (tf.to_float(image) - 128.0) / 128.0
 
