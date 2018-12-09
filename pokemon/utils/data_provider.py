@@ -14,6 +14,7 @@ def parse_fn(record, shape):
     image = tf.image.decode_image(parsed_record['image_formatted'])
 
     image = tf.reshape(image, shape)  # NHWC format
+    image = tf.image.resize_images(image, [FLAGS.image_dims]*2)
     # image = np.expand_dims(record.astype(np.float32), axis=3)
     # image = tf.image.per_image_standardization(image)
     # image = tf.transpose(image, [2, 0, 1]) # NCHW format
@@ -31,7 +32,7 @@ def provide_data(dataset_dir, shape):
       dataset_dir: The directory where the MNIST data can be found.
       shape: the shape of the data, needed by map
     """
-    dataset = tf.data.TFRecordDataset(os.path.join(dataset_dir, "mnist_train.tfrecord"))
+    dataset = tf.data.TFRecordDataset(os.path.join(dataset_dir, "pokemon_train.tfrecord"))
     dataset = dataset.shuffle(buffer_size=FLAGS.shuffle_buffer_size)
     dataset = dataset.map(map_func=lambda record: parse_fn(record, shape), num_parallel_calls=FLAGS.num_parallel_calls)
     dataset = dataset.repeat()

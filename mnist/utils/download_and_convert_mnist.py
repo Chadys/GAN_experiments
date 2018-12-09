@@ -79,14 +79,14 @@ def bytes_feature(values):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[values]))
 
 
-def image_to_tfexample(image_formatted, format, shape, class_id):
+def image_to_tfexample(image_formatted, format_string, shape, class_id):
     return tf.train.Example(features=tf.train.Features(feature={
-        'format': bytes_feature(format),
+        'format': bytes_feature(tf.compat.as_bytes(format_string)),
         'height': int64_feature(shape[0]),
         'width': int64_feature(shape[1]),
         'depth': int64_feature(shape[2]),
         'label': int64_feature(class_id),
-        'image_formatted': bytes_feature(image_formatted)
+        'image_formatted': bytes_feature(tf.compat.as_bytes(image_formatted))
     }))
 
 
@@ -156,7 +156,6 @@ def _add_to_tfrecord(data_filename, labels_filename, num_images,
     images = _extract_images(data_filename, num_images)
     labels = _extract_labels(labels_filename, num_images)
 
-    shape = (_IMAGE_SIZE, _IMAGE_SIZE, _NUM_CHANNELS)
     with tf.Graph().as_default():
         image = tf.placeholder(dtype=tf.uint8, shape=shape)
         encoded_png = tf.image.encode_png(image)
@@ -168,7 +167,7 @@ def _add_to_tfrecord(data_filename, labels_filename, num_images,
 
                 png_string = sess.run(encoded_png, feed_dict={image: images[j]})
 
-                example = image_to_tfexample(png_string, 'png'.encode(), shape, labels[j])
+                example = image_to_tfexample(png_string, 'png'.encode(), get_shape(), labels[j])
                 tfrecord_writer.write(example.SerializeToString())
 
 
