@@ -5,9 +5,9 @@ import sys
 import tensorflow as tf
 
 # The URLs where the MNIST data can be downloaded.
-_FOLDER_PATH = '../images/pokemon'
+_FOLDER_PATH = '../images/yugioh'
 
-_IMAGE_SIZE = 475
+_IMAGE_SIZE = 416
 _NUM_CHANNELS = 3
 
 
@@ -80,7 +80,7 @@ def _get_output_filename(dataset_dir, split_name):
   Returns:
     An absolute file path.
   """
-    return os.path.join(dataset_dir, 'pokemon_%s.tfrecord' % split_name)
+    return os.path.join(dataset_dir, 'yugioh_%s.tfrecord' % split_name)
 
 
 def run(dataset_dir):
@@ -102,7 +102,7 @@ def run(dataset_dir):
     with tf.python_io.TFRecordWriter(training_filename) as tfrecord_writer:
         _add_to_tfrecord(tfrecord_writer)
 
-    print('\nFinished converting the Pokemon dataset!')
+    print('\nFinished converting the Yugioh dataset!')
 
 
 def get_shape():

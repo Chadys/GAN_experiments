@@ -76,7 +76,6 @@ def _discriminator_helper(img, weight_decay):
         net = tf.contrib.layers.conv2d(net, 128, [4, 4], stride=2)
         net = tf.contrib.layers.flatten(net)
         net = tf.contrib.layers.fully_connected(net, 2048, normalizer_fn=tf.contrib.layers.layer_norm)
-        net = tf.layers.batch_normalization(net)
 
         return net
 
@@ -91,6 +90,10 @@ def discriminator(img, weight_decay=2.5e-5):
     Returns:
         Logits for the probability that the image is real.
     """
+    # img = img + tf.random_normal(shape=tf.shape(img),
+    #                              mean=0.0,
+    #                              stddev=tf.divide(0.5, tf.to_float(tf.train.get_global_step()+1)),
+    #                              dtype=tf.float32)
     # img = img + tf.random_normal(shape=tf.shape(img), mean=0.0, stddev=0.1, dtype=tf.float32)
     net = _discriminator_helper(img, weight_decay)
     return tf.contrib.layers.linear(net, 1)
