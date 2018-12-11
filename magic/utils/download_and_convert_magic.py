@@ -4,9 +4,9 @@ import sys
 
 import tensorflow as tf
 
-_FOLDER_PATH = '../images/yugioh'
+_FOLDER_PATH = '../images/magic_img'
 
-_IMAGE_SIZE = 416
+_IMAGE_SIZE = 205, 274
 _NUM_CHANNELS = 3
 
 
@@ -79,7 +79,7 @@ def _get_output_filename(dataset_dir, split_name):
   Returns:
     An absolute file path.
   """
-    return os.path.join(dataset_dir, 'yugioh_%s.tfrecord' % split_name)
+    return os.path.join(dataset_dir, 'magic_%s.tfrecord' % split_name)
 
 
 def run(dataset_dir):
@@ -105,4 +105,4 @@ def run(dataset_dir):
 
 
 def get_shape():
-    return _IMAGE_SIZE, _IMAGE_SIZE, _NUM_CHANNELS
+    return _IMAGE_SIZE[0], _IMAGE_SIZE[1], _NUM_CHANNELS

@@ -23,10 +23,10 @@ def parse_fn(record, shape):
 
 
 def provide_data(dataset_dir, shape):
-    """Provides batches of MNIST digits.
+    """Provides batches of images.
 
     Args:
-      dataset_dir: The directory where the MNIST data can be found.
+      dataset_dir: The directory where the data can be found.
       shape: the shape of the data, needed by map
     """
     dataset = tf.data.TFRecordDataset(os.path.join(dataset_dir, "pokemon_train.tfrecord"))

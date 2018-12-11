@@ -63,7 +63,7 @@ def define_flags():
 
 
 def _generator(noise, mode):
-    """MNIST generator with extra argument for tf.Estimator's `mode`."""
+    """generator with extra argument for tf.Estimator's `mode`."""
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
     return networks.generator(noise, is_training=is_training)
 

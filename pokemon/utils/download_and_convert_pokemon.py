@@ -4,7 +4,6 @@ import sys
 
 import tensorflow as tf
 
-# The URLs where the MNIST data can be downloaded.
 _FOLDER_PATH = '../images/pokemon'
 
 _IMAGE_SIZE = 475

@@ -29,7 +29,7 @@ def provide_data(dataset_dir, shape):
       dataset_dir: The directory where the data can be found.
       shape: the shape of the data, needed by map
     """
-    dataset = tf.data.TFRecordDataset(os.path.join(dataset_dir, "yugioh_train.tfrecord"))
+    dataset = tf.data.TFRecordDataset(os.path.join(dataset_dir, "magic_train.tfrecord"))
     dataset = dataset.shuffle(buffer_size=FLAGS.shuffle_buffer_size)
     dataset = dataset.map(map_func=lambda record: parse_fn(record, shape), num_parallel_calls=FLAGS.num_parallel_calls)
     dataset = dataset.repeat()

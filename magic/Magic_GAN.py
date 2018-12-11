@@ -10,8 +10,7 @@ import tensorflow.contrib.gan as tfgan
 
 from utils import data_provider
 from utils import networks
-from utils import download_and_convert_pokemon
-
+from utils import download_and_convert_magic
 
 FLAGS = tf.flags.FLAGS
 
@@ -19,17 +18,17 @@ FLAGS = tf.flags.FLAGS
 def define_flags():
     tf.flags.DEFINE_integer('batch_size', 32,
                             'The number of images in each train batch.')
-    tf.flags.DEFINE_integer('max_number_of_steps', 20000,
+    tf.flags.DEFINE_integer('max_number_of_steps', 50000,
                             'The maximum number of gradient steps.')
-    tf.flags.DEFINE_integer('noise_dims', 256,
+    tf.flags.DEFINE_integer('noise_dims', 512,
                             'Dimensions of the generator noise vector')
-    tf.flags.DEFINE_integer('image_dims', 128,
+    tf.flags.DEFINE_integer('image_dims', 256,
                             'The size images should be redimentioned to')
 
-    tf.flags.DEFINE_string('dataset_dir', './pokemon_data/', 'Location of data.')
-    tf.flags.DEFINE_string('eval_dir', '/tmp/pokemon-estimator/',
+    tf.flags.DEFINE_string('dataset_dir', './magic_data/', 'Location of data.')
+    tf.flags.DEFINE_string('eval_dir', '/tmp/magic-estimator/',
                            'Directory where the results images are saved to.')
-    tf.flags.DEFINE_string('model_dir', './pokemon-model/',
+    tf.flags.DEFINE_string('model_dir', './magic-model/',
                            'Directory where the checkpoints and model are saved.')
     tf.flags.DEFINE_string('gen_dir', './gen_img/',
                            'Directory where the images from summaries are saved.')
@@ -53,7 +52,7 @@ def define_flags():
     tf.flags.DEFINE_integer('prefetch_buffer_size', 1,
                             'Number of element in prefetch element buffer '
                             '(should be equal to number of element consumed by one training step).')
-    tf.flags.DEFINE_integer('shuffle_buffer_size', 100,
+    tf.flags.DEFINE_integer('shuffle_buffer_size', 1000,
                             'The number of elements from this dataset from which the new dataset will sample.')
 
     os.environ["KMP_BLOCKTIME"] = str(FLAGS.kmp_blocktime)
@@ -67,6 +66,7 @@ def _generator(noise, mode):
     """generator with extra argument for tf.Estimator's `mode`."""
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
     return networks.generator(noise, is_training=is_training)
+
 
 def save_images_from_events_summaries(output_dir):
     if not tf.gfile.Exists(output_dir):
@@ -84,44 +84,40 @@ def save_images_from_events_summaries(output_dir):
                         if not v.tag == 'generated_data/image':
                             continue
                         im = im_tf.eval({image_str: v.image.encoded_image_string})
-                        output_fn = os.path.realpath('{}/image_{:04d}.png'.format(output_dir, e.step))
+                        output_fn = os.path.realpath('{}/image_{:05d}.png'.format(output_dir, e.step))
                         print("Saving '{}'".format(output_fn))
                         scipy.misc.imsave(output_fn, im)
             except tf.errors.DataLossError:
                 pass
 
+
 def main(_):
     tf.logging.set_verbosity(tf.logging.INFO)
 
     define_flags()
-
+    save_images_from_events_summaries(output_dir=FLAGS.gen_dir)
+    return 0
     if not tf.gfile.Exists(FLAGS.dataset_dir):
         tf.gfile.MakeDirs(FLAGS.dataset_dir)
-        download_and_convert_pokemon.run(FLAGS.dataset_dir)
+        download_and_convert_magic.run(FLAGS.dataset_dir)
 
-    shape = download_and_convert_pokemon.get_shape()
+    shape = download_and_convert_magic.get_shape()
 
-    # dataset = data_provider.provide_data(FLAGS.dataset_dir, shape)
-
-    # tensor = dataset.make_one_shot_iterator().get_next()
-    # with tf.Session() as session:
-    #     print(session.run(tensor))
-    # return
     # Initialize GANEstimator with options and hyperparameters.
-
     gan_estimator = tfgan.estimator.GANEstimator(
         generator_fn=_generator,
         discriminator_fn=networks.discriminator,
-        generator_loss_fn=tfgan.losses.modified_generator_loss,
-        discriminator_loss_fn=tfgan.losses.modified_discriminator_loss,
-        generator_optimizer=tf.train.AdamOptimizer(0.001, 0.5),
-        discriminator_optimizer=tf.train.GradientDescentOptimizer(0.5),
-        # discriminator_optimizer=tf.train.AdamOptimizer(0.0001, 0.5),
+        generator_loss_fn=tfgan.losses.wasserstein_generator_loss,
+        discriminator_loss_fn=tfgan.losses.wasserstein_discriminator_loss,
+        generator_optimizer=tf.train.AdamOptimizer(0.001, 0.5, use_locking=True),
+        # discriminator_optimizer=tf.train.GradientDescentOptimizer(0.5, use_locking=True),
+        discriminator_optimizer=tf.train.AdamOptimizer(0.0001, 0.5),
         add_summaries=tfgan.estimator.SummaryType.IMAGES,
         model_dir=FLAGS.model_dir,
-        config=tf.estimator.RunConfig(keep_checkpoint_max=3),  #TODO add mirrored strategy
-        get_hooks_fn=tfgan.get_sequential_train_hooks(
-            train_steps=tfgan.GANTrainSteps(1, 1)))
+        config=tf.estimator.RunConfig(keep_checkpoint_max=3),
+        # can't use because still not functional  #, train_distribute=tf.contrib.distribute.MirroredStrategy()),
+        get_hooks_fn=tfgan.get_joint_train_hooks(
+            train_steps=tfgan.GANTrainSteps(3, 2)))
 
     gan_estimator.train(lambda: data_provider.provide_data(FLAGS.dataset_dir, shape),
                         max_steps=FLAGS.max_number_of_steps)
@@ -140,7 +136,8 @@ def main(_):
         tf.gfile.MakeDirs(FLAGS.eval_dir)
     scipy.misc.imsave(os.path.join(FLAGS.eval_dir, 'gan.png'), tiled_image)
 
-    save_images_from_events_summaries(output_dir=FLAGS.gen_dir)
+    # save_images_from_events_summaries(output_dir=FLAGS.gen_dir)
+    return 0
 
 
 if __name__ == '__main__':
