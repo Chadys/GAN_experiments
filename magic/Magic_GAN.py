@@ -95,8 +95,7 @@ def main(_):
     tf.logging.set_verbosity(tf.logging.INFO)
 
     define_flags()
-    save_images_from_events_summaries(output_dir=FLAGS.gen_dir)
-    return 0
+
     if not tf.gfile.Exists(FLAGS.dataset_dir):
         tf.gfile.MakeDirs(FLAGS.dataset_dir)
         download_and_convert_magic.run(FLAGS.dataset_dir)
