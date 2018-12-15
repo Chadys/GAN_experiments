@@ -1,4 +1,4 @@
-"""Trains a GANEstimator on Pokemon data."""
+"""Trains a GANEstimator on Magic data."""
 
 import os
 import multiprocessing

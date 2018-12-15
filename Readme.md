@@ -16,6 +16,7 @@ Datasets that were used :
 - Pokemon (scrapped from official site)
 - Yugioh (scrapped from official site)
 - Magic (scrapped from official site)
+- Landscape (from the summer2winter_yosemite dataset in this [project](https://github.com/junyanz/CycleGAN) which was built using the Flickr API with the tag yosemite)
 
 ## Project files arrangement
 
@@ -33,7 +34,7 @@ Datasets that were used :
 ## Results
 
 ### Mnist
-The dataset is numerous, simple and consistent so overall good, clean, stable results.
+The dataset is very large, simple and consistent so overall good, clean, stable results.
 
 ![Alt text](./GANs/mnist/example_generator_output.png?raw=true "Mnist output")
 
@@ -48,6 +49,11 @@ The dataset is small with complex, heterogenous data. Generation could not conve
 ![Alt text](./GANs/yugioh/example_generator_output.png?raw=true "Yugioh output")
 
 ### Magic
-The dataset is sufficiently large, data is complex and heterogenous. Except for the always present mode collapse problem, the generated images are quite detailed, evoking colors and shape from real ones.
+The dataset is large, data is complex and heterogenous. Except for the always present mode collapse problem, the generated images are quite detailed, evoking colors and shape from real ones.
 
 ![Alt text](./GANs/magic/example_generator_output.png?raw=true "Magic output")
+
+### Landscape
+The dataset is sufficiently large, data is detailled but homogenous. Really good and interesting result, stable and no mode collapse.
+
+![Alt text](./GANs/landscape/example_generator_output.png?raw=true "Landscape output")
