@@ -23,6 +23,7 @@ Datasets that were used :
 - CreatureCrawler/ : contains spiders to construct datasets
 - GANs/ : choose one subfolder
     - gen_img/ : generated data, title of each image is the epoch it was produced on
+    - *-model/ : pretrained models
     - preprocess/ : eventual preprocessing of images using OpenCV
     - utils/ :
         - data_provider.py : read data from TFRecord and return Dataset of image after needed preprocess (resize, normalization) and noise for generator input
